@@ -1,15 +1,13 @@
-import { generateKeyPairSync, createPublicKey, createPrivateKey, createHash } from "node:crypto";
+import { generateKeyPairSync, createPublicKey, createPrivateKey } from "node:crypto";
 import type { Keygen, KeygenOptions, SshKeyPair, SshKeyType } from "./types.js";
+import {
+  encodeOpenSshPublicKey,
+  opensshFingerprintSha256,
+  opensshPublicKeyLine,
+} from "./openssh.js";
 
 // §10b: Keygen contract. node:crypto covers rsa/ecdsa/ed25519 in OpenSSH format.
 // PuTTY import and ML-DSA are left as TODO (ML-DSA needs a PQC provider; .ppk needs a parser).
-
-function opensshFingerprintSha256(publicKeyOpenSsh: string): string {
-  // OpenSSH pubkey: "<type> <base64 blob> [comment]"
-  const b64 = publicKeyOpenSsh.trim().split(/\s+/)[1] ?? "";
-  const blob = Buffer.from(b64, "base64");
-  return "SHA256:" + createHash("sha256").update(blob).digest("base64").replace(/=+$/, "");
-}
 
 export class NodeKeygen implements Keygen {
   async generateSshKey(options: KeygenOptions): Promise<SshKeyPair> {
@@ -56,16 +54,12 @@ export class NodeKeygen implements Keygen {
       default:
         throw new Error(`generateSshKey: type '${options.type}' not implemented (dsa/mldsa TODO)`);
     }
-    // TODO: convert SPKI public key to the OpenSSH wire format ("ssh-ed25519 AAAA...").
-    // node:crypto has no built-in OpenSSH exporter; a small encoder is needed here.
-    const publicKeyOpenSsh = pubKeyObj
-      .export({ type: "spki", format: "pem" })
-      .toString()
-      .trim();
+    const publicKeyOpenSsh = opensshPublicKeyLine(pubKeyObj, options.comment);
+    const { blob } = encodeOpenSshPublicKey(pubKeyObj);
     return {
       privateKeyOpenSsh: privPem,
       publicKeyOpenSsh,
-      fingerprintSha256: "", // filled once OpenSSH pubkey encoding is implemented
+      fingerprintSha256: opensshFingerprintSha256(blob),
       type: options.type,
     };
   }
@@ -73,7 +67,7 @@ export class NodeKeygen implements Keygen {
   async generatePublicKeyFromPrivateKey(privateKey: string, passphrase?: string): Promise<string> {
     const priv = createPrivateKey({ key: privateKey, format: "pem", passphrase });
     const pub = createPublicKey(priv);
-    return pub.export({ type: "spki", format: "pem" }).toString().trim();
+    return opensshPublicKeyLine(pub);
   }
 
   async generateSshKeyFromPuttyKey(_ppk: string, _passphrase?: string): Promise<SshKeyPair> {
@@ -115,7 +109,4 @@ export class NodeKeygen implements Keygen {
       return false;
     }
   }
-
-  // exported for reuse once OpenSSH encoding lands
-  static fingerprint = opensshFingerprintSha256;
 }

@@ -18,7 +18,7 @@ on open-source libraries (`ssh2`, `node:crypto`).
 | Host key verification (SHA256) | ⚠️ hook present, no persistent known_hosts store yet |
 | Port forwarding (local/remote/dynamic) | ⛔ typed stubs (`NotImplemented`) |
 | SSH method introspection (agreed/server/client) | ⚠️ agreed only |
-| Keygen (rsa/ecdsa/ed25519) | ⚠️ keys generate; OpenSSH pubkey encoding TODO; dsa/ML-DSA/PuTTY TODO |
+| Keygen (rsa/ecdsa/ed25519) | ✅ keys generate with OpenSSH pubkey + SHA256 fingerprint (verified vs `ssh-keygen -l`); dsa/ML-DSA/PuTTY TODO |
 | Vault crypto (`VaultCrypto`) | ⚠️ node:crypto stand-in (AES-256-GCM + scrypt); swap for libsodium + Argon2id to be wire-compatible |
 | SSH agent (store + messaging bus + forwarding) | ⛔ memory store stub only |
 
@@ -64,7 +64,7 @@ npm run build       # electron-vite production build
 
 ## Roadmap toward parity
 
-1. OpenSSH public-key wire encoding in `Keygen` (unblocks fingerprints + agent key ids).
+1. ~~OpenSSH public-key wire encoding in `Keygen`~~ ✅ done (`openssh.ts`; ed25519/ecdsa/rsa, fingerprints verified against `ssh-keygen -l`).
 2. Persistent known_hosts store with TOFU prompt (§6).
 3. Port forwarding: local (`net` + `forwardOut`), remote (`forwardIn`), dynamic (SOCKS5).
 4. Vault: replace node:crypto with libsodium (XChaCha20-Poly1305) + Argon2id to match v4 ciphertext.
