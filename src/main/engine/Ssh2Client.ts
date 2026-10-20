@@ -1,4 +1,4 @@
-import { randomUUID, createHash } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { Client, type ClientChannel, type ConnectConfig } from "ssh2";
 import type {
   ExecOptions,
@@ -81,9 +81,12 @@ export class Ssh2Client implements SshClient {
   private conn: Client | null = null;
   private negotiated: Negotiated;
 
+  // verifyHostKey decides whether to trust the server's key blob (§6 CheckKnownhosts).
+  // It is injected so the trust store + any user prompt live outside the engine.
   constructor(
     private readonly emitData: (id: string, chunk: Buffer) => void,
     private readonly emitExit: (id: string) => void,
+    private readonly verifyHostKey: (host: string, port: number, keyBlob: Buffer) => Promise<boolean>,
   ) {}
 
   connect(options: SshOptions): Promise<void> {
@@ -94,11 +97,9 @@ export class Ssh2Client implements SshClient {
         port: options.port,
         username: options.username,
         keepaliveInterval: options.keepaliveIntervalMs ?? 0,
-        // §6 CheckKnownhosts: verify the server host key fingerprint (SHA256) ourselves.
-        hostVerifier: (key: Buffer): boolean => {
-          if (!options.hostFingerprintSha256) return true; // TODO: enforce TOFU via a known_hosts store
-          const fp = createHash("sha256").update(key).digest("base64").replace(/=+$/, "");
-          return fp === options.hostFingerprintSha256.replace(/^SHA256:/, "").replace(/=+$/, "");
+        // ssh2 supports an async verifier: call back true/false after the trust decision.
+        hostVerifier: (key: Buffer, cb: (ok: boolean) => void): void => {
+          this.verifyHostKey(options.host, options.port, key).then(cb).catch(() => cb(false));
         },
       };
       // SshAuth method deque (§10a): map our ordered auth list onto ssh2's config.

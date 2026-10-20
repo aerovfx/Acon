@@ -15,7 +15,7 @@ on open-source libraries (`ssh2`, `node:crypto`).
 | SSH connect + interactive shell (xterm) | ✅ working end-to-end (`ssh2`) |
 | `exec` / `interactiveExec` | ✅ wired |
 | SFTP (list/stat/chmod/rename/mkdir/remove/symlink/read/write) | ✅ wired (`Ssh2Sftp`) |
-| Host key verification (SHA256) | ⚠️ hook present, no persistent known_hosts store yet |
+| Host key verification (SHA256) | ✅ persistent known_hosts (JSON) + TOFU native prompt; changed key is refused |
 | Port forwarding (local/remote/dynamic) | ⛔ typed stubs (`NotImplemented`) |
 | SSH method introspection (agreed/server/client) | ⚠️ agreed only |
 | Keygen (rsa/ecdsa/ed25519) | ✅ keys generate with OpenSSH pubkey + SHA256 fingerprint (verified vs `ssh-keygen -l`); dsa/ML-DSA/PuTTY TODO |
@@ -65,7 +65,7 @@ npm run build       # electron-vite production build
 ## Roadmap toward parity
 
 1. ~~OpenSSH public-key wire encoding in `Keygen`~~ ✅ done (`openssh.ts`; ed25519/ecdsa/rsa, fingerprints verified against `ssh-keygen -l`).
-2. Persistent known_hosts store with TOFU prompt (§6).
+2. ~~Persistent known_hosts store with TOFU prompt~~ ✅ done (`KnownHosts.ts` + native modal in `index.ts`; `userData/known_hosts.json`, mode 0600).
 3. Port forwarding: local (`net` + `forwardOut`), remote (`forwardIn`), dynamic (SOCKS5).
 4. Vault: replace node:crypto with libsodium (XChaCha20-Poly1305) + Argon2id to match v4 ciphertext.
 5. SSH agent: messaging bus + `auth-agent@openssh.com` forwarding with per-sign user prompt (§11b).

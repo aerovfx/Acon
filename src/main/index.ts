@@ -1,9 +1,50 @@
 import { join } from "node:path";
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, dialog, ipcMain } from "electron";
 import { SessionManager } from "./sessions.js";
+import { KnownHosts } from "./engine/KnownHosts.js";
 import { IPC, type ConnectRequest, type ShellRequest } from "../../shared/api.js";
 
 let win: BrowserWindow | null = null;
+let knownHosts: KnownHosts | null = null;
+
+// §6: host-key trust. match → accept; changed → refuse (possible MITM); unknown → TOFU prompt.
+// The prompt is a native modal in the main process so page content cannot spoof it.
+async function verifyHostKey(host: string, port: number, keyBlob: Buffer): Promise<boolean> {
+  const kh = knownHosts!;
+  const r = kh.check(host, port, keyBlob);
+  if (r.status === "match") return true;
+
+  if (r.status === "changed") {
+    await dialog.showMessageBox(win!, {
+      type: "error",
+      buttons: ["Abort connection"],
+      defaultId: 0,
+      title: "Host key changed",
+      message: `WARNING: host key for ${host}:${port} has changed`,
+      detail:
+        `Offered (${r.keyType}): ${r.fingerprint}\n` +
+        `Known:             ${r.knownFingerprint}\n\n` +
+        "This could be a man-in-the-middle attack. Connection aborted. " +
+        "If the change is expected, remove the stored key and reconnect.",
+    });
+    return false;
+  }
+
+  const { response } = await dialog.showMessageBox(win!, {
+    type: "warning",
+    buttons: ["Trust & continue", "Cancel"],
+    defaultId: 1,
+    cancelId: 1,
+    title: "Unknown host",
+    message: `The authenticity of host ${host}:${port} can't be established`,
+    detail: `${r.keyType} key fingerprint:\n${r.fingerprint}\n\nTrust this host and remember it?`,
+  });
+  if (response === 0) {
+    kh.add(host, port, keyBlob);
+    return true;
+  }
+  return false;
+}
 
 function createWindow(): void {
   win = new BrowserWindow({
@@ -26,7 +67,7 @@ function createWindow(): void {
   }
 }
 
-const sessions = new SessionManager(() => win?.webContents ?? null);
+const sessions = new SessionManager(() => win?.webContents ?? null, verifyHostKey);
 
 function registerIpc(): void {
   ipcMain.handle(IPC.sshConnect, async (_e, req: ConnectRequest) => {
@@ -65,6 +106,7 @@ function registerIpc(): void {
 }
 
 app.whenReady().then(() => {
+  knownHosts = new KnownHosts(join(app.getPath("userData"), "known_hosts.json"));
   registerIpc();
   createWindow();
   app.on("activate", () => {

@@ -89,3 +89,11 @@ export function opensshPublicKeyLine(key: KeyObject, comment?: string): string {
 export function opensshFingerprintSha256(blob: Buffer): string {
   return "SHA256:" + createHash("sha256").update(blob).digest("base64").replace(/=+$/, "");
 }
+
+// The key type is the first ssh-string field of the blob (e.g. "ssh-ed25519").
+export function readOpenSshKeyType(blob: Buffer): string {
+  if (blob.length < 4) return "unknown";
+  const len = blob.readUInt32BE(0);
+  if (blob.length < 4 + len) return "unknown";
+  return blob.subarray(4, 4 + len).toString("ascii");
+}

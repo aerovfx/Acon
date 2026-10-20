@@ -8,7 +8,10 @@ export class SessionManager {
   private clients = new Map<string, Ssh2Client>();
   private terminals = new Map<string, Map<string, RemoteTerminal>>();
 
-  constructor(private readonly sender: () => WebContents | null) {}
+  constructor(
+    private readonly sender: () => WebContents | null,
+    private readonly verifyHostKey: (host: string, port: number, keyBlob: Buffer) => Promise<boolean>,
+  ) {}
 
   private emit<T>(channel: string, payload: T): void {
     this.sender()?.send(channel, payload);
@@ -27,6 +30,7 @@ export class SessionManager {
           this.emit(IPC.sshExit, e);
           this.terminals.get(sessionId)?.delete(terminalId);
         },
+        this.verifyHostKey,
       );
       this.clients.set(sessionId, c);
       this.terminals.set(sessionId, new Map());
