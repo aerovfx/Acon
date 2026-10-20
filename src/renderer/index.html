@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+    <title>Acon — SSH client skeleton</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header>
+      <input id="host" placeholder="host" />
+      <input id="port" placeholder="22" value="22" style="width: 56px" />
+      <input id="user" placeholder="username" />
+      <input id="pass" placeholder="password" type="password" />
+      <button id="connect">Connect</button>
+      <span id="status"></span>
+    </header>
+    <div id="terminal"></div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
