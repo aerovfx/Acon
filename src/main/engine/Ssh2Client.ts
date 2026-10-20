@@ -13,13 +13,7 @@ import type {
   SshOptions,
 } from "./types.js";
 import { Ssh2Sftp } from "./Ssh2Sftp.js";
-
-class NotImplemented extends Error {
-  constructor(what: string) {
-    super(`${what} is not implemented in this skeleton yet`);
-    this.name = "NotImplemented";
-  }
-}
+import { startDynamicForward, startLocalForward, startRemoteForward } from "./forwarding.js";
 
 // ssh2's negotiated algorithm names, surfaced per SshMethodType (§4 getAgreedSshMethod).
 type Negotiated = Record<string, unknown> | undefined;
@@ -175,16 +169,13 @@ export class Ssh2Client implements SshClient {
   }
 
   localPortForwarding(options: PortForwardingOptions): Promise<PortForwarding> {
-    // TODO: net.createServer on bind*, conn.forwardOut to dest* per connection.
-    throw new NotImplemented(`localPortForwarding(${options.bindPort})`);
+    return startLocalForward(this.requireConn(), options);
   }
   remotePortForwarding(options: PortForwardingOptions): Promise<PortForwarding> {
-    // TODO: conn.forwardIn(bindAddress, bindPort) + 'tcp connection' handler.
-    throw new NotImplemented(`remotePortForwarding(${options.bindPort})`);
+    return startRemoteForward(this.requireConn(), options);
   }
   dynamicPortForwarding(options: PortForwardingOptions): Promise<PortForwarding> {
-    // TODO: SOCKS5 server on bind*, conn.forwardOut to the SOCKS-requested target.
-    throw new NotImplemented(`dynamicPortForwarding(${options.bindPort})`);
+    return startDynamicForward(this.requireConn(), options);
   }
 
   getClientSshMethods(_type: SshMethodType): string[] {

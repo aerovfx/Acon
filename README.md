@@ -16,7 +16,7 @@ on open-source libraries (`ssh2`, `node:crypto`).
 | `exec` / `interactiveExec` | ✅ wired |
 | SFTP (list/stat/chmod/rename/mkdir/remove/symlink/read/write) | ✅ wired (`Ssh2Sftp`) |
 | Host key verification (SHA256) | ✅ persistent known_hosts (JSON) + TOFU native prompt; changed key is refused |
-| Port forwarding (local/remote/dynamic) | ⛔ typed stubs (`NotImplemented`) |
+| Port forwarding (local/remote/dynamic) | ✅ local (net+forwardOut), remote (forwardIn), dynamic (SOCKS5 proxy) |
 | SSH method introspection (agreed/server/client) | ⚠️ agreed only |
 | Keygen (rsa/ecdsa/ed25519) | ✅ keys generate with OpenSSH pubkey + SHA256 fingerprint (verified vs `ssh-keygen -l`); dsa/ML-DSA/PuTTY TODO |
 | Vault crypto (`VaultCrypto`) | ⚠️ node:crypto stand-in (AES-256-GCM + scrypt); swap for libsodium + Argon2id to be wire-compatible |
@@ -66,7 +66,7 @@ npm run build       # electron-vite production build
 
 1. ~~OpenSSH public-key wire encoding in `Keygen`~~ ✅ done (`openssh.ts`; ed25519/ecdsa/rsa, fingerprints verified against `ssh-keygen -l`).
 2. ~~Persistent known_hosts store with TOFU prompt~~ ✅ done (`KnownHosts.ts` + native modal in `index.ts`; `userData/known_hosts.json`, mode 0600).
-3. Port forwarding: local (`net` + `forwardOut`), remote (`forwardIn`), dynamic (SOCKS5).
+3. ~~Port forwarding: local / remote / dynamic~~ ✅ done (`forwarding.ts`; SOCKS5 CONNECT for dynamic — no-auth, IPv4/domain/IPv6). Live multi-host integration test still TODO.
 4. Vault: replace node:crypto with libsodium (XChaCha20-Poly1305) + Argon2id to match v4 ciphertext.
 5. SSH agent: messaging bus + `auth-agent@openssh.com` forwarding with per-sign user prompt (§11b).
 6. Sync/data model + backend (`/api/v4.x`, socket.io/gRPC) — the renderer app logic (not recoverable
