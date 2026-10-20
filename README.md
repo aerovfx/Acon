@@ -19,7 +19,7 @@ on open-source libraries (`ssh2`, `node:crypto`).
 | Port forwarding (local/remote/dynamic) | ✅ local (net+forwardOut), remote (forwardIn), dynamic (SOCKS5 proxy) |
 | SSH method introspection (agreed/server/client) | ⚠️ agreed only |
 | Keygen (rsa/ecdsa/ed25519) | ✅ keys generate with OpenSSH pubkey + SHA256 fingerprint (verified vs `ssh-keygen -l`); dsa/ML-DSA/PuTTY TODO |
-| Vault crypto (`VaultCrypto`) | ⚠️ node:crypto stand-in (AES-256-GCM + scrypt); swap for libsodium + Argon2id to be wire-compatible |
+| Vault crypto (`VaultCrypto`) | ✅ libsodium Argon2id KDF + XChaCha20-Poly1305 IETF AEAD; version-byte(4) ciphertext (exact Termius v4 params unknown → not guaranteed wire-compatible) |
 | SSH agent (store + messaging bus + forwarding) | ⛔ memory store stub only |
 
 ## Architecture
@@ -67,7 +67,7 @@ npm run build       # electron-vite production build
 1. ~~OpenSSH public-key wire encoding in `Keygen`~~ ✅ done (`openssh.ts`; ed25519/ecdsa/rsa, fingerprints verified against `ssh-keygen -l`).
 2. ~~Persistent known_hosts store with TOFU prompt~~ ✅ done (`KnownHosts.ts` + native modal in `index.ts`; `userData/known_hosts.json`, mode 0600).
 3. ~~Port forwarding: local / remote / dynamic~~ ✅ done (`forwarding.ts`; SOCKS5 CONNECT for dynamic — no-auth, IPv4/domain/IPv6). Live multi-host integration test still TODO.
-4. Vault: replace node:crypto with libsodium (XChaCha20-Poly1305) + Argon2id to match v4 ciphertext.
+4. ~~Vault: libsodium XChaCha20-Poly1305 + Argon2id~~ ✅ done (`VaultCrypto.ts` on `libsodium-wrappers-sumo`; KDF/round-trip/tamper tested). Confirm exact v4 KDF params + associated data against a real vault blob for true wire-compat.
 5. SSH agent: messaging bus + `auth-agent@openssh.com` forwarding with per-sign user prompt (§11b).
 6. Sync/data model + backend (`/api/v4.x`, socket.io/gRPC) — the renderer app logic (not recoverable
    from the original; design your own).
